@@ -1,0 +1,31 @@
+=====================
+Testing Lambda Parser
+=====================
+\ x . x =parse=> (\x.x)
+\ x . x x =parse=> (\x.(x x))
+x =parse=> x
+x x (x y) z =parse=> (((x x) (x y)) z)
+\ x . x \ y. x =parse=> (\x.(x (\y.x)))
+\ x . x \ y. x x =parse=> (\x.(x (\y.(x x))))
+\ x . x (\ y. x) x =parse=> (\x.((x (\y.x)) x))
+\ x . \y . x (\ y. x) y =parse=> (\x.(\y.((x (\y.x)) y)))
+\ x . (\y . y (\ y. x)) x =parse=> (\x.((\y.(y (\y.x))) x))
+\ x  y . y (\ y. x) x =parse=> (\x.(\y.((y (\y.x)) x)))
+Lab4.Parser.ParseErr("Identifier expected") encountered for \ . y (\ y. x) x
+(\ x y x.  x y (x x)) x =parse=> ((\x.(\y.(\x.((x y) (x x))))) x)
+\ x y x.  x y (x x) x =parse=> (\x.(\y.(\x.(((x y) (x x)) x))))
+=====================
+Testing fv function
+=====================
+(\x.y)
+ has free vars [y]
+(\y.(\x.y))
+ has free vars []
+((\x.((\z.z) x)) ((\z.z) (\x.(x x))))
+ has free vars []
+(y (x y))
+ has free vars [y,x]
+let y=(\z.z) in (\x.y) end
+ has free vars []
+let z=(\z.z) in (\x.y) end
+ has free vars [y]
