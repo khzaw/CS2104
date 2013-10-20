@@ -1,0 +1,72 @@
+=================
+Testing for Lexer
+=================
+v+y+z =lex=> [Id v;Key +;Id y;Key +;Id z]
+v+w*y =lex=> [Id v;Key +;Id w;Key *;Id y]
+v/y =lex=> [Id v;Key /;Id y]
+55+66*9 =lex=> [NumI 55;Key +;NumI 66;Key *;NumI 9]
+5+666*(2/4) =lex=> [NumI 5;Key +;NumI 666;Key *;Key (;NumI 2;Key /;NumI 4;Key )]
+v+w-y =lex=> [Id v;Key +;Id w;Key -;Id y]
+v^w^z =lex=> [Id v;Key ^;Id w;Key ^;Id z]
+v+w!! =lex=> [Id v;Key +;Id w;Key !;Key !]
+let v = 6 in v+5*v =lex=> [Key let;Id v;Key =;NumI 6;Key in;Id v;Key +;NumI 5;Key *;Id v]
+let v = 6 in let w = v+2 in w+5*v =lex=> [Key let;Id v;Key =;NumI 6;Key in;Key let;Id w;Key =;Id v;Key +;NumI 2;Key in;Id w;Key +;NumI 5;Key *;Id v]
+let v = 6 in v + 5 / v =lex=> [Key let;Id v;Key =;NumI 6;Key in;Id v;Key +;NumI 5;Key /;Id v]
+let v = 6 in v * 5 + x =lex=> [Key let;Id v;Key =;NumI 6;Key in;Id v;Key *;NumI 5;Key +;Id x]
+let v = 5 in v * v =lex=> [Key let;Id v;Key =;NumI 5;Key in;Id v;Key *;Id v]
+let v = 5 in let v = v+1 in v + v =lex=> [Key let;Id v;Key =;NumI 5;Key in;Key let;Id v;Key =;Id v;Key +;NumI 1;Key in;Id v;Key +;Id v]
+Soln_lab3.Lexical.LexErr("Unrecognized lex symbol %") encoutered for 5*6%6/7
+2 +  =lex=> [NumI 2;Key +]
+2 + + =lex=> [NumI 2;Key +;Key +]
+let let =lex=> [Key let;Key let]
+let v = 5 in v ~ v =lex=> [Key let;Id v;Key =;NumI 5;Key in;Id v;Key ~;Id v]
+==================
+Testing for Parser
+==================
+v+y+z =parse=> ((v+y)+z)
+v+w*y =parse=> (v+(w*y))
+v/y =parse=> (v/y)
+55+66*9 =parse=> (55+(66*9))
+5+666*(2/4) =parse=> (5+(666*(2/4)))
+5*6+6/7 =parse=> ((5*6)+(6/7))
+v*y+z =parse=> ((v*y)+z)
+v+w*y =parse=> (v+(w*y))
+v*w*y =parse=> ((v*w)*y)
+v-w-y =parse=> ((v-w)-y)
+v-w+y =parse=> ((v-w)+y)
+v+w-y =parse=> ((v+w)-y)
+v^w^z =parse=> (v^(w^z))
+v+w!! =parse=> (v+(fact (fact w)))
+let v = 6 in v+5*v =parse=> let v=6 in (v+(5*v))
+let v = 6 in let w = v+2 in w+5*v =parse=> let v=6 in let w=(v+2) in (w+(5*v))
+let v = 6 in v + 5 / v =parse=> let v=6 in (v+(5/v))
+let v = 6 in v * 5 + x =parse=> let v=6 in ((v*5)+xb)
+let v = 5 in v * v =parse=> let v=5 in (v*v)
+let v = 5 in let v = v+1 in v + v =parse=> let v=5 in let v=(v+1) in (v+v)
+2^3^2 =parse=> (2^(3^2))
+2^2!!! =parse=> (2^(fact (fact (fact 2))))
+2+3!! =parse=> (2+(fact (fact 3)))
+2*3!! =parse=> (2*(fact (fact 3)))
+Soln_lab3.Parser.ParseErr("Extra chars in input") encountered for 2 + 
+Soln_lab3.Parser.ParseErr("Extra chars in input") encountered for 2 + +
+Soln_lab3.Parser.ParseErr("Identifier expected") encountered for let let
+Soln_lab3.Parser.ParseErr("Extra chars in input") encountered for let v = 5 in v ~ v
+=====================
+Testing for Evaluator
+=====================
+Failure("Var z has not been bound") encountered for v+y+z
+Failure("Var y has not been bound") encountered for v+w*y
+Failure("Var y has not been bound") encountered for v/y
+55+66*9 =eval=> 649
+5+666*(2/4) =eval=> 338
+5*6+6/7 =eval=> 216/7
+let v = 6 in v+5*v =eval=> 36
+let v = 6 in let w = v+2 in w+5*v =eval=> 38
+let v = 6 in v + 5 / v =eval=> 41/6
+Failure("Var x has not been bound") encountered for let v = 6 in v * 5 + x
+let v = 5 in v * v =eval=> 25
+let v = 5 in let v = v+1 in v + v =eval=> 12
+2^3^2 =eval=> 512
+2^2!!! =eval=> 4
+2+3!! =eval=> 722
+2*3!! =eval=> 1440
