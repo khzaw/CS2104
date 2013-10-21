@@ -273,8 +273,11 @@ struct
     (
         (ident >> (fun s -> Var s))
       |%| ((key_open ++ (lam_expr++key_close)) >> (fun (_,(e,_)) -> e))
-      |%| ((key_lam ++ ( ident  )++ key_dot ++ lam_expr) >> (fun ((((_,i),_),e)) -> Lam(i,e)))
-      (* |%| ((key_let ++ ident ++ key_eq ++ lam_expr) >> ) *)
+      |%| ((key_lam ++ ( repeat1 ident  )++ key_dot ++ lam_expr) >> 
+            (fun (((_,ixs),_),e) -> 
+              List.fold_right (fun a b -> Lam(a,b) ) ixs e
+            )
+      )
     ) toks
 
 (* 
