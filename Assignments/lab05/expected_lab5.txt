@@ -1,0 +1,42 @@
+=====================
+Testing for Renaming 
+=====================
+Lambda.rename x _1 x x (x y) z => (((_1 _1) (_1 y)) z)
+Lambda.rename z z2 x x (x y) z => (((x x) (x y)) z2)
+Lambda.rename x z2 \ x . x \ y. x => (\x.(x (\y.x)))
+Lambda.rename x z2 \ y . (\ x. x y) x => (\y.((\x.(x y)) z2))
+Lambda.rename y z2 \ y . (\ x. x y) x => (\y.((\x.(x y)) x))
+========================
+Testing for Substitution 
+========================
+Lambda.subst x (z1 z2) x x (x y) z => ((((z1 z2) (z1 z2)) ((z1 z2) y)) z)
+Lambda.subst z (z1 z2) x x (x y) z => (((x x) (x y)) (z1 z2))
+Lambda.subst x (z1 z2) \ y . (\ x. x y) x => (\y.((\x.(x y)) (z1 z2)))
+Lambda.subst x (z y) \ y . (\ x. x y) x => (\_0.((\x.(x _0)) (z y)))
+Lambda.subst y (z1 z2) \ y . (\ x. x y) x => (\y.((\x.(x y)) x))
+===========================
+Testing Lambda Call-by-Name
+===========================
+(\ x  . x) (\ y. y) =eval(1)=> (\y.y)
+(\ x  y . y x) (\ y. y) =eval(1)=> (\y.(y (\y.y)))
+Failure("exceeded 1000 reductions") encountered for (\ x  . x x) (\ y. y y)
+(\x. y) ((\ x  . x x) (\ y. y y)) =eval(1)=> y
+let v = (\ x  . x) x in v end =eval(1)=> x
+Failure("exceeded 1000 reductions") encountered for let v =((\ x  . x x) (\ y. y y)) in v end
+let v = (\ x  . x) in v end =eval(0)=> (\x.x)
+let v = ((\ x  . x x) (\ y. y y)) in z end =eval(0)=> z
+let v = ((\ x  . x x) (\y. y)) in v v end =eval(5)=> (\y.y)
+(\ x  . (\ y. y x)) y =eval(1)=> (\_1.(_1 y))
+============================
+Testing Lambda Call-by-Value
+============================
+(\ x  . x) (\ y. y) =eval_val(1)=> (\y.y)
+(\ x  y . y x) (\ y. y) =eval_val(1)=> (\y.(y (\y.y)))
+Failure("exceeded 1000 reductions") encountered for (\ x  . x x) (\ y. y y)
+Failure("exceeded 1000 reductions") encountered for (\x. y) ((\ x  . x x) (\ y. y y))
+let v = (\ x  . x) x in v end =eval_val(2)=> x
+Failure("exceeded 1000 reductions") encountered for let v =((\ x  . x x) (\ y. y y)) in v end
+let v = (\ x  . x) in v end =eval_val(1)=> (\x.x)
+Failure("exceeded 1000 reductions") encountered for let v = ((\ x  . x x) (\ y. y y)) in z end
+let v = ((\ x  . x x) (\y. y)) in v v end =eval_val(4)=> (\y.y)
+(\ x  . (\ y. y x)) y =eval_val(1)=> (\_2.(_2 y))
