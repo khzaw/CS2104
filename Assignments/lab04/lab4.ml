@@ -23,7 +23,7 @@ struct
   (* permitted symbols *)
   let symbols = ["=";".";"(";")";"\\"];;
   (* reserved keywords in calculator *)
-  let alphas = ["let";"in"];;
+  let alphas = ["let";"in";"end"];;
 end
 
 module Lexical =
@@ -260,6 +260,7 @@ struct
 
   let key_let = symbol "let";;
   let key_in = symbol "in";;
+  let key_end = symbol "end";;
   let key_eq = symbol "=";;
   let key_lam = symbol "\\";;
   let key_dot = symbol ".";;
@@ -273,11 +274,12 @@ struct
     (
         (ident >> (fun s -> Var s))
       |%| ((key_open ++ (lam_expr++key_close)) >> (fun (_,(e,_)) -> e))
+      |%| ((key_let ++ ident ++ key_eq ++ lam_expr ++ key_in ++ lam_expr ++
+      key_end) >> 
+            (fun ((((((_,i),_),e1),_),e2),_) -> Let(i,e1,e2)))
       |%| ((key_lam ++ ( repeat1 ident  )++ key_dot ++ lam_expr) >> 
             (fun (((_,ixs),_),e) -> 
               List.fold_right (fun a b -> Lam(a,b)) ixs e))
-      |%| ((key_let ++ ident ++ key_eq ++ lam_expr ++ key_in ++ lam_expr) >> 
-            (fun (((((_,i),_),e1),_),e2) -> Let(i,e1,e2)))
     ) toks
 
 (* 
@@ -310,7 +312,8 @@ struct
     | Var x -> [x] 
     | Lam(i,b) -> List.filter (fun x -> x <> i) (fv b)
     | App(a,b) -> (fv a) @ (List.filter (fun x -> not(List.mem x (fv a))) (fv b))
-    | Let(i,a,b) -> (fv a) @ (List.filter (fun x -> not(List.mem x (fv a))) (fv b))
+    | Let(i,a,b) -> List.filter (fun x-> x <> i) (fv b)
+
   ;;
     (* failwith "to be implemented (see sample trace" *)
 
@@ -401,6 +404,10 @@ L.test_parse s6;;
 L.test_parse s6a;; 
 L.test_parse s6c;; 
 L.test_parse s6d;; 
+let s7 = "let z=(\z.z) in (\x.y) end";;
+let s7a = "let y=(\z.z) in (\x.y) end";;
+L.test_parse s7;;
+L.test_parse s7a;;
 
 
 print_endline "=====================";;
