@@ -275,9 +275,9 @@ struct
       |%| ((key_open ++ (lam_expr++key_close)) >> (fun (_,(e,_)) -> e))
       |%| ((key_lam ++ ( repeat1 ident  )++ key_dot ++ lam_expr) >> 
             (fun (((_,ixs),_),e) -> 
-              List.fold_right (fun a b -> Lam(a,b) ) ixs e
-            )
-      )
+              List.fold_right (fun a b -> Lam(a,b)) ixs e))
+      |%| ((key_let ++ ident ++ key_eq ++ lam_expr ++ key_in ++ lam_expr) >> 
+            (fun (((((_,i),_),e1),_),e2) -> Let(i,e1,e2)))
     ) toks
 
 (* 
@@ -306,8 +306,13 @@ struct
       print_endline (s^" =parse=> "^(string_of_lambda expr))
     with e -> print_endline ((Printexc.to_string e)^" encountered for "^s);;
 
-  let fv t =
-    failwith "to be implemented (see sample trace"
+  let rec fv t = match t with
+    | Var x -> [x] 
+    | Lam(i,b) -> List.filter (fun x -> x <> i) (fv b)
+    | App(a,b) -> (fv a) @ (List.filter (fun x -> not(List.mem x (fv a))) (fv b))
+    | Let(i,a,b) -> (fv a) @ (List.filter (fun x -> not(List.mem x (fv a))) (fv b))
+  ;;
+    (* failwith "to be implemented (see sample trace" *)
 
   let fv t =
     Debug.no_1 "fv" string_of_lambda (pr_list pr_id)fv t
