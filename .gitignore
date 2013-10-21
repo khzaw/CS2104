@@ -17,3 +17,9 @@ _build
 *.cmx
 *.cmxs
 *.cmxa
+
+# Other
+*.zip
+
+# Scala
+*.class
