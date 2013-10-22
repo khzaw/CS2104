@@ -310,9 +310,9 @@ struct
 
   let rec fv t = match t with
     | Var x -> [x] 
-    | Lam(i,b) -> List.filter (fun x -> x <> i) (fv b)
-    | App(a,b) -> (fv a) @ (List.filter (fun x -> not(List.mem x (fv a))) (fv b))
-    | Let(i,a,b) -> List.filter (fun x-> x <> i) (fv b)
+    | Lam(i,b) -> List.filter (fun x -> x <> i ) ((fv b) @ [i])
+    | App(a,b) -> let fva = (fv a) in fva @ (List.filter (fun x -> not(List.mem x fva)) (fv b))
+    | Let(i,a,b) -> (fv a) @ List.filter (fun x-> x <> i) (fv b)
 
   ;;
     (* failwith "to be implemented (see sample trace" *)
@@ -364,6 +364,10 @@ fv@6 EXIT:[y]
   let t6c = App(Var "y",t6a);;
   let t7 = Let("y",id,t1);;
   let t7a = Let("z",id,t1);;
+  let s7 = Lam("x", Lam("y", App(App(Var "x", Var "y"), App(Var "y", Var "w"))));;
+  let s7a = Lam("x", App(Lam("y", App(Var "x", Var "y")), App(Var "y", Var
+  "w")));;
+  let s8 = Let("z", Var "x", Lam("x", Var "y"));;
 
 
 end;;
@@ -404,8 +408,8 @@ L.test_parse s6;;
 L.test_parse s6a;; 
 L.test_parse s6c;; 
 L.test_parse s6d;; 
-let s7 = "let z=(\z.z) in (\x.y) end";;
-let s7a = "let y=(\z.z) in (\x.y) end";;
+let s7 = "let z=(\\z.z) in (\\x.y) end";;
+let s7a = "let y=(\\z.z) in (\\x.y) end";;
 L.test_parse s7;;
 L.test_parse s7a;;
 
@@ -420,3 +424,6 @@ L.test L.t5;;
 L.test L.t6c;; 
 L.test L.t7;; 
 L.test L.t7a;; 
+L.test L.s7;;
+L.test L.s7a;;
+L.test L.s8;;
