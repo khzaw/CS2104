@@ -283,8 +283,13 @@ struct
                  else aux xs (x::lst)
     in aux xs [];;
 
-  let fv t =
-    failwith "to be implemented from Lab4"
+  let rec fv t = match t with
+    | Var x -> [x]
+    | Lam(i, b) -> List.filter(fun x -> x <> i) ((fv b) @ [i])
+    | App(a, b) -> let fva = (fv a) in fva @ (List.filter (fun x -> not(List.mem
+    x fva)) (fv b))
+    | Let(i, a, b) -> (fv a) @ List.filter (fun x -> x <> i) (fv b)
+    (* failwith "to be implemented from Lab4" *)
 
   let fv t = 
     Debug.no_1 "fv" string_of_lambda (pr_list pr_id) fv t
@@ -317,11 +322,23 @@ struct
   let key_open = symbol "(";;
   let key_close = symbol ")";;
 
+  (* let rec base_expr toks =  *)
+    (* ( *)
+        (* (ident >> (fun s -> Var s)) *)
+      (* |%| ((key_open ++ (lam_expr++key_close)) >> (fun (_,(e,_)) -> e)) *)
+      (* |%| (failwith "to be implemented from Lab4") *)
+    (* ) toks *)
+
   let rec base_expr toks = 
     (
         (ident >> (fun s -> Var s))
       |%| ((key_open ++ (lam_expr++key_close)) >> (fun (_,(e,_)) -> e))
-      |%| (failwith "to be implemented from Lab4")
+      |%| ((key_let ++ ident ++ key_eq ++ lam_expr ++ key_in ++ lam_expr ++
+      key_end) >> 
+            (fun ((((((_,i),_),e1),_),e2),_) -> Let(i,e1,e2)))
+      |%| ((key_lam ++ ( repeat1 ident  )++ key_dot ++ lam_expr) >> 
+            (fun (((_,ixs),_),e) -> 
+              List.fold_right (fun a b -> Lam(a,b)) ixs e))
     ) toks
 
   and lam_expr toks = 
@@ -360,28 +377,41 @@ struct
   let has_redex t = 
     Debug.no_1 "has_redex" string_of_lambda string_of_bool has_redex t
 
+  (* Rename a variable id in a given term to a new fresh variable id2. *)
   let rename id id2 t2 =
     let rec aux t = match t with
           | Var j -> 
                 if id=j then Var id2
                 else t
           | Let(v1,t1,t2) ->
-                failwith "rename to be implemented"
+                Let(v1, aux t1, t2)
           | Lam(v1,t2) ->
                 if v1=id then Lam(v1,t2)
                 else Lam(v1,aux t2)
-          | App(t1,t2) ->
-                failwith "rename to be implemented"
+          | App(t1,t2) -> 
+              App(aux t1, aux t2)
     in aux t2
   let rename i j e = 
     Debug.no_2 "rename" (pr_pair pr_id pr_id) string_of_lambda string_of_lambda 
         (fun _ _ -> rename i j e) (i,j) e
 
+      (* Replace every free occurrence id of a term t2 by a new sub-term t1. *)
   let subst id t1 t2 =
     let free_vars_t1 = fv t1 in
-    let rec aux t =
-      failwith "subst to be implemented"
+    let rec aux t = match t with
+      | Var j ->
+          if id=j then t1
+          else Var j
+      | App(a,b) -> App(aux a, aux b)
+      | Lam(v,a) ->
+          if v=id then Lam(v,a)
+          else if (List.mem v free_vars_t1) then 
+            let z = fresh#get_name in
+              let new_term = rename v z a in Lam(z, aux new_term)
+            else Lam(v, aux a)
+      | Let(v,a,b) -> Let (v, aux a, aux b)
     in aux t2
+
 
   let subst id t1 t2 =
     Debug.no_2 "subst" (pr_pair pr_id string_of_lambda) string_of_lambda string_of_lambda 
@@ -390,12 +420,16 @@ struct
 
   (* reduce leftmost outermost redex *)
   (* tick to be invoked during beta-reduction *)
+    (* argument is copied first and evaluted in function *)
   let one_step_by_name tick t = 
     let rec aux t = match t with
       | Var _ -> t
-      | Let (id,t1,t2) -> (tick(); subst id t1 t2)
-      | Lam _ -> failwith "to be implemented"
-      | App(e1,e2) -> failwith "to be implemented"
+      | Let (id,t1,t2) -> (subst id t1 t2)
+      | Lam _ -> t
+      | App(e1,e2) -> 
+          match e1 with
+            | Lam(a,b) -> (tick(); subst a e2 b)
+            | _ -> if (has_redex e1) then App(aux e1, e2) else App(e1, aux e2)
     in aux t;;
 
   let one_step_by_name tick t = 
@@ -405,8 +439,16 @@ struct
   (* reduce leftmost innermost redex *)
   (* tick to be invoked during beta-reduction *)
   let one_step_by_value tick t = 
-    let rec aux t = 
-      failwith "one_step_by_value to be implemented"
+    let rec aux t = match t with
+      | Var _ -> t
+      | Let (id,t1,t2) -> (if (has_redex t1) then Let(id, aux t1, t2) else 
+         (tick();subst id t2 t1 ))
+      | Lam _ -> t
+      | App (e1,e2) -> 
+        match e1 with
+          | Lam(a,b) -> if (has_redex e2) then App(e1, aux e2) 
+                        else (tick();subst a e2 b)
+          | _ -> App(aux e1, e2)
     in aux t;;
 
   let one_step_by_value tick t = 
@@ -511,6 +553,7 @@ L.test_rename "y" "z2" s6e;;
 print_endline "========================";;
 print_endline "Testing for Substitution ";;
 print_endline "========================";;
+L.test_subst "x" "z1 z2" s3;; 
 L.test_subst "x" "z1 z2" s4;; 
 L.test_subst "z" "z1 z2" s4;; 
 L.test_subst "x" "z1 z2" s6e;; 
@@ -554,6 +597,7 @@ let s8d = "let v = (\\ x  . x) in v end";;
 let s8e = "let v = ((\\ x  . x x) (\\ y. y y)) in z end";;
 let s9 = "let v = ((\\ x  . x x) (\\y. y)) in v v end";;
 let s10 = "(\\ x  . (\\ y. y x)) y";;
+let test = "((\\ x . x x) y) z";;
 L.test_eval s7a;; 
 L.test_eval s7;; 
 L.test_eval s8;; 
