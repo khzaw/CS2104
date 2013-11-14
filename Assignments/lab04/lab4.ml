@@ -369,6 +369,8 @@ fv@6 EXIT:[y]
   "w")));;
   let s8 = Let("z", Var "x", Lam("x", Var "y"));;
 
+  let f1 = App(App(App(Var "x", Var "x"), App(Var "x", Var "y")), Var "z");;
+
 
 end;;
 
@@ -427,3 +429,5 @@ L.test L.t7a;;
 L.test L.s7;;
 L.test L.s7a;;
 L.test L.s8;;
+
+L.test L.f1;;
